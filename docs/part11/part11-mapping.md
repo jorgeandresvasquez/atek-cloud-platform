@@ -1,0 +1,4 @@
+- §11.10(e) Audit Trails → audit table (Aurora) + WORM copies in S3.
+- §11.50/70 Electronic Signatures → signature objects bound to record hash.
+- §11.10(d) System checks → Zod validation + DB constraints.
+- §11.10(g) Authority checks → policy layer (Verified Permissions).

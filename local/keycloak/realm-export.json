@@ -1,0 +1,112 @@
+{
+  "realm": "atek",
+  "enabled": true,
+  "registrationAllowed": false,
+  "rememberMe": true,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "resetPasswordAllowed": true,
+  "roles": {
+    "realm": [
+      { "name": "tenant-admin", "description": "Tenant administrator with full access" },
+      { "name": "facility-manager", "description": "Manage facilities and metrics" },
+      { "name": "viewer", "description": "Read-only access to dashboards" }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "atek-api",
+      "enabled": true,
+      "publicClient": false,
+      "bearerOnly": true,
+      "protocol": "openid-connect",
+      "attributes": {
+        "use.jwks.url": "true"
+      },
+      "defaultClientScopes": [
+        "email",
+        "profile",
+        "roles"
+      ],
+      "protocolMappers": [
+        {
+          "name": "tenant-id",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-attribute-mapper",
+          "consentRequired": false,
+          "config": {
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "claim.name": "tenantId",
+            "jsonType.label": "String",
+            "user.attribute": "tenant_id"
+          }
+        }
+      ]
+    },
+    {
+      "clientId": "atek-web",
+      "enabled": true,
+      "publicClient": true,
+      "protocol": "openid-connect",
+      "redirectUris": [
+        "http://localhost:3000/*"
+      ],
+      "webOrigins": [
+        "+"
+      ],
+      "defaultClientScopes": [
+        "email",
+        "profile",
+        "roles"
+      ],
+      "optionalClientScopes": [
+        "address",
+        "phone"
+      ],
+      "attributes": {
+        "pkce.code.challenge.method": "S256"
+      },
+      "protocolMappers": [
+        {
+          "name": "tenant-id",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-attribute-mapper",
+          "consentRequired": false,
+          "config": {
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "claim.name": "tenantId",
+            "jsonType.label": "String",
+            "user.attribute": "tenant_id"
+          }
+        }
+      ]
+    }
+  ],
+  "users": [
+    {
+      "username": "admin@atek.dev",
+      "enabled": true,
+      "email": "admin@atek.dev",
+      "emailVerified": true,
+      "firstName": "Platform",
+      "lastName": "Admin",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "ChangeMe123!",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "tenant-admin"
+      ],
+      "attributes": {
+        "tenant_id": [
+          "atek-dev"
+        ]
+      }
+    }
+  ]
+}

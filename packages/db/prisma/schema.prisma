@@ -1,0 +1,290 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  TENANT_ADMIN
+  FACILITY_MANAGER
+  VIEWER
+  OPERATOR
+}
+
+enum MetricType {
+  TEMPERATURE
+  HUMIDITY
+  PRESSURE
+  PARTICULATE
+  CUSTOM
+}
+
+enum ThresholdDirection {
+  ABOVE
+  BELOW
+}
+
+enum AlarmSeverity {
+  INFO
+  WARNING
+  CRITICAL
+}
+
+enum AlarmStatus {
+  OPEN
+  ACKNOWLEDGED
+  RESOLVED
+}
+
+enum NotificationChannel {
+  EMAIL
+  SMS
+  WEBHOOK
+}
+
+model Tenant {
+  id          String    @id @default(uuid())
+  slug        String    @unique
+  name        String
+  description String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  users       User[]
+  facilities  Facility[]
+  metrics     MetricDefinition[]
+  roles       UserRole[]
+  facilityMetrics FacilityMetric[]
+  devices     Device[]
+  readings    Reading[]
+  thresholds  Threshold[]
+  alarms      Alarm[]
+  notifications NotificationRule[]
+  auditEvents AuditEvent[]
+  signatures  ElectronicSignature[]
+}
+
+model User {
+  id             String    @id @default(uuid())
+  tenantId       String
+  tenant         Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  email          String
+  displayName    String
+  hashedPassword String?
+  isActive       Boolean   @default(true)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  roles          UserRole[]
+  auditEvents    AuditEvent[] @relation("AuditActor")
+  signatures     ElectronicSignature[] @relation("SignatureActor")
+
+  @@unique([tenantId, email])
+}
+
+model UserRole {
+  id        String   @id @default(uuid())
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      Role
+  assignedAt DateTime @default(now())
+
+  @@unique([tenantId, userId, role])
+  @@index([tenantId, role])
+}
+
+model Facility {
+  id          String       @id @default(uuid())
+  tenantId    String
+  tenant      Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  name        String
+  code        String
+  location    Json?
+  timezone    String       @default("UTC")
+  description String?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  metrics     FacilityMetric[]
+  devices     Device[]
+
+  @@unique([tenantId, code])
+  @@index([tenantId, name])
+}
+
+model MetricDefinition {
+  id          String           @id @default(uuid())
+  tenantId    String
+  tenant      Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  key         String
+  name        String
+  unit        String
+  description String?
+  type        MetricType       @default(CUSTOM)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  facilityMetrics FacilityMetric[]
+
+  @@unique([tenantId, key])
+  @@index([tenantId, type])
+}
+
+model FacilityMetric {
+  id                  String           @id @default(uuid())
+  tenantId            String
+  tenant              Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  facilityId          String
+  facility            Facility         @relation(fields: [facilityId], references: [id], onDelete: Cascade)
+  metricDefinitionId  String
+  metricDefinition    MetricDefinition @relation(fields: [metricDefinitionId], references: [id], onDelete: Cascade)
+  sampleIntervalSeconds Int            @default(60)
+  isEnabled           Boolean          @default(true)
+  createdAt           DateTime         @default(now())
+  updatedAt           DateTime         @updatedAt
+  thresholds          Threshold[]
+  alarms              Alarm[]
+  notificationRules   NotificationRule[]
+  readings            Reading[]
+
+  @@unique([facilityId, metricDefinitionId])
+  @@index([tenantId, facilityId])
+}
+
+model Device {
+  id          String    @id @default(uuid())
+  tenantId    String
+  tenant      Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  facilityId  String
+  facility    Facility  @relation(fields: [facilityId], references: [id], onDelete: Cascade)
+  externalId  String
+  name        String
+  description String?
+  firmwareVersion String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  readings    Reading[]
+
+  @@unique([tenantId, externalId])
+  @@index([facilityId])
+}
+
+model Reading {
+  id                String           @id @default(uuid())
+  tenantId          String
+  tenant            Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  facilityMetricId  String
+  facilityMetric    FacilityMetric   @relation(fields: [facilityMetricId], references: [id], onDelete: Cascade)
+  deviceId          String
+  device            Device           @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  value             Float
+  unit              String
+  recordedAt        DateTime
+  ingestedAt        DateTime @default(now())
+  rawPayload        Json?
+
+  @@index([tenantId, facilityMetricId, recordedAt])
+  @@index([deviceId, recordedAt])
+}
+
+model Threshold {
+  id               String            @id @default(uuid())
+  tenantId         String
+  tenant           Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  facilityMetricId String
+  facilityMetric   FacilityMetric    @relation(fields: [facilityMetricId], references: [id], onDelete: Cascade)
+  direction        ThresholdDirection
+  value            Float
+  severity         AlarmSeverity     @default(WARNING)
+  durationSeconds  Int               @default(0)
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  alarms           Alarm[]
+
+  @@unique([facilityMetricId, direction, value])
+  @@index([facilityMetricId])
+}
+
+model Alarm {
+  id               String        @id @default(uuid())
+  tenantId         String
+  tenant           Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  facilityMetricId String
+  facilityMetric   FacilityMetric @relation(fields: [facilityMetricId], references: [id], onDelete: Cascade)
+  thresholdId      String?
+  threshold        Threshold?    @relation(fields: [thresholdId], references: [id], onDelete: SetNull)
+  severity         AlarmSeverity @default(WARNING)
+  status           AlarmStatus   @default(OPEN)
+  openedAt         DateTime      @default(now())
+  acknowledgedAt   DateTime?
+  resolvedAt       DateTime?
+  context          Json?
+  notifications    NotificationEvent[]
+
+  @@index([tenantId, facilityMetricId, status])
+}
+
+model NotificationRule {
+  id               String              @id @default(uuid())
+  tenantId         String
+  tenant           Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  facilityMetricId String
+  facilityMetric   FacilityMetric      @relation(fields: [facilityMetricId], references: [id], onDelete: Cascade)
+  channel          NotificationChannel
+  target           String
+  isActive         Boolean             @default(true)
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+  notificationEvents NotificationEvent[]
+
+  @@index([tenantId, facilityMetricId])
+}
+
+model NotificationEvent {
+  id           String            @id @default(uuid())
+  notificationRuleId String
+  notificationRule NotificationRule @relation(fields: [notificationRuleId], references: [id], onDelete: Cascade)
+  alarmId       String
+  alarm         Alarm             @relation(fields: [alarmId], references: [id], onDelete: Cascade)
+  deliveredAt   DateTime?
+  deliveryStatus String           @default("pending")
+  payload       Json?
+  createdAt     DateTime          @default(now())
+
+  @@index([alarmId])
+}
+
+model AuditEvent {
+  id          String   @id @default(uuid())
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  actorUserId String?
+  actor       User?    @relation("AuditActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+  action      String
+  entityType  String
+  entityId    String
+  before      Json?
+  after       Json?
+  metadata    Json?
+  occurredAt  DateTime @default(now())
+
+  @@index([tenantId, entityType, entityId])
+  @@index([occurredAt])
+}
+
+model ElectronicSignature {
+  id              String   @id @default(uuid())
+  tenantId        String
+  tenant          Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  actorUserId     String
+  actor           User     @relation("SignatureActor", fields: [actorUserId], references: [id], onDelete: Cascade)
+  targetEntityType String
+  targetEntityId  String
+  signatureMeaning String
+  signatureHash   String
+  signedAt        DateTime @default(now())
+  metadata        Json?
+
+  @@index([tenantId, targetEntityType, targetEntityId])
+}
