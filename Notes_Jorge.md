@@ -60,7 +60,7 @@ CSV (Computer System Validation)
     - API Gateway + Lambdas + Fastify + OpenAPI + TypeScript
 - Database
     - Aurora Serverless (PostgreSQL)?       
-        - Seems like TimescaleDB extendsion  is not compatible with serverless Aurora
+        - Seems like TimescaleDB extension  is not compatible with serverless Aurora
     - Amazon Timestream for time-series data
     - Managed TigerCloud by Tiger Data
         - https://www.tigerdata.com/blog/do-more-with-timescale-on-aws-iot-core
@@ -222,6 +222,7 @@ pnpm dev                                   # API + Web
 ## Plan for Next Steps
 - Finalize tech stack choices
 - Draft initial architecture diagrams
+    - Add containers.puml diagram
 - Set up monorepo structure with pnpm workspaces
 - Create initial project scaffolding for core components (API, Web, Ingestor, Simulators)
 - Define initial database schema with Prisma
@@ -229,6 +230,10 @@ pnpm dev                                   # API + Web
 - Document development environment setup and key commands in README.md
 - Begin drafting CSV documentation templates (URS, FS, DS, VP, RTM)
 - Establish CI/CD pipeline for automated testing and deployment
+- Add project references in addition to path based imports in tsconfig.json for better DX (every workspace runs against the emitted types of its dependencies)
+    - Introduce a root tsconfig.base.json with shared compiler options.
+    - Each package tsconfig.json extends it, sets "references": [{ "path": "../config" }, …], and keeps rootDir/outDir.
+    - Add a tsconfig.build.json or use tsc -b targets for CI builds.
 
 ## Checks upon every milestone
 - Does the code follow object-oriented principles?

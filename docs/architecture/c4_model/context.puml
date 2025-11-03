@@ -1,0 +1,23 @@
+@startuml
+!includeurl https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+Person(customer, "Health Sciences Customer", "Uses the web app to see facility metrics")
+Person(operator, "Atek Operations", "Uses the web app")
+Person(admin, "Atek Admin", "Uses the web app")
+System_Boundary(system, "Atek Cloud Platform") {
+  Container(web, "Web App", "React", "Delivers UI")
+  Container(api, "REST API Service", "AWS API Gateway REST API", "Handles business logic")
+  ContainerDb(db, "Database", "PostgreSQL+TimescaleDB Extension", "Stores customer data and metrics time series")
+}
+System_Ext(facility, "Healthcare Facility", "Healthcare Facility where metrics are collected")
+System_Ext(mailer, "Mailer Service", "Sends email notifications")
+
+Rel(customer, web, "Uses", "HTTPS")
+Rel(admin, web, "Manages", "HTTPS")
+Rel(operator, web, "Operates", "HTTPS")
+Rel(web, api, "Makes API calls", "JSON/HTTPS")
+Rel(api, db, "Reads/Writes", "JDBC")
+Rel(mailer, customer, "Notifies", "SMTP")
+Rel(facility, api, "Sends metrics", "HTTPS")
+Rel(api, mailer, "Sends notifications", "HTTPS")
+@enduml

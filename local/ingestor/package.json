@@ -4,7 +4,9 @@
   "type": "module",
   "scripts": {
     "start": "dotenv -e ../../.env -- tsx src/index.ts",
-    "dev": "dotenv -e ../../.env -- tsx watch src/index.ts"
+    "dev": "dotenv -e ../../.env -- tsx watch src/index.ts",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint ."
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.670.0",

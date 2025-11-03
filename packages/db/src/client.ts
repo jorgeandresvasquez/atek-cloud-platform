@@ -2,7 +2,6 @@ import { PrismaClient } from "@prisma/client";
 import { loadConfig, requireConfigValues } from "@atek/config";
 
 declare global {
-  // eslint-disable-next-line no-var
   var __atek_prisma__: PrismaClient | undefined;
 }
 
