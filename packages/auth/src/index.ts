@@ -1,5 +1,6 @@
-import { createRemoteJWKSet, jwtVerify, JWTPayload } from "jose";
+import { createRemoteJWKSet, jwtVerify } from "jose";
 import { loadConfig } from "@atek/config";
+import type { JWTPayload } from "jose";
 
 export interface AccessTokenClaims extends JWTPayload {
   tenantId?: string;

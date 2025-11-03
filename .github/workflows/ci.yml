@@ -5,8 +5,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
       - uses: pnpm/action-setup@v4
-      - run: pnpm i
+        with:
+          version: 9.15.9
+          run_install: false
+      - run: pnpm install
+      - run: pnpm lint
+      - run: pnpm typecheck
       - run: docker compose up -d db mosquitto minio
-      - run: pnpm -w build || true
-      - run: pnpm -w test || true
+      - run: pnpm -w build
+      - run: pnpm -w test
