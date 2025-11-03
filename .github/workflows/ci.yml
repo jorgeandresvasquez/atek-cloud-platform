@@ -5,6 +5,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - run: cp .env.example .env
       - uses: actions/setup-node@v4
         with:
           node-version: 20
@@ -12,8 +13,16 @@ jobs:
         with:
           version: 9.15.9
       - run: pnpm install
+      - name: Start infrastructure containers
+        run: docker compose up -d db mosquitto minio keycloak
+      - name: Wait for postgres
+        run: pnpm dlx wait-on tcp:localhost:5432
       - run: pnpm lint
       - run: pnpm typecheck
-      - run: docker compose up -d db mosquitto minio
+      - run: pnpm bootstrap:local
+      - name: Start API
+        run: pnpm --filter @apps/api dev &
+      - name: Wait for API health
+        run: pnpm dlx wait-on http://127.0.0.1:3001/health
       - run: pnpm -w build
       - run: pnpm -w test
